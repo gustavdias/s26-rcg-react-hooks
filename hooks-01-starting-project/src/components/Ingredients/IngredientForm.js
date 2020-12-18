@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 import Card from "../UI/Card";
 import "./IngredientForm.css";
+import LoadingIndicator from '../UI/LoadingIndicator';
 
 const IngredientForm = React.memo((props) => {
   // useXYZ should be used on your func component body (here:)
@@ -69,6 +70,8 @@ const IngredientForm = React.memo((props) => {
           </div>
           <div className="ingredient-form__actions">
             <button type="submit">Add Ingredient</button>
+            {/* {props.loading? <LoadingIndicator/> : null} */}
+            {props.loading && <LoadingIndicator/> }
           </div>
         </form>
       </Card>
