@@ -7,7 +7,7 @@ import {AuthContext} from './context/auth-context'//Why {}
 
 
 const App = props => {
-  const authContext = useContext(AuthContext);
+  const authContext = useContext(AuthContext);//You pass the context to each you want ot listen - ex.: AuthContext
   let content = <Auth/>;
   if(authContext.isAuth){
     content = <Ingredients/>;

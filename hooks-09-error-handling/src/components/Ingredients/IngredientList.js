@@ -2,12 +2,7 @@ import React from 'react';
 
 import './IngredientList.css';
 
-  //!useMemo()  - alternative to React.memo - useCallback()
-  //useCallback() is a hook to save a function that does not change
-  //useMemo() a hook where you can save a value which is saved so that the value isn't re created
-// another way of memorizing component.
-  const IngredientList = React.memo(props => {
-  console.log('RENDERING INGREDIENTLIST')
+const IngredientList = props => {
   return (
     <section className="ingredient-list">
       <h2>Loaded Ingredients</h2>
@@ -21,6 +16,6 @@ import './IngredientList.css';
       </ul>
     </section>
   );
-});
+};
 
 export default IngredientList;

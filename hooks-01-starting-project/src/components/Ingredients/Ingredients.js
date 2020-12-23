@@ -1,11 +1,13 @@
 // import React, { useState, useEffect, useCallback } from "react";
 // import React, { useReducer, useState, useEffect, useCallback } from "react";
-import React, { useReducer, useEffect, useCallback } from "react";
+import React, { useReducer, useEffect, useCallback, useMemo } from "react";
 
 import IngredientForm from "./IngredientForm";
 import Search from "./Search";
 import IngredientList from "./IngredientList";
 import ErrorModal from "../UI/ErrorModal";
+//import custom hook
+import useHttp from '../../hooks/http'
 
 //You put the useReducer() outside of your component, so that the reduce or function isn't recreated every time a component is rendered.
 // const ingredientReducer = (state, action) => {}
@@ -25,24 +27,29 @@ const ingredientReducer = (currentIngredients, action) => {
 };
 
 //reducer outside component for isLoading and error useState. outside of the component to a wide unnecessary recreations
-const httpReducer = (curHttpState, action) => {
-  switch (action.type) {
-    case "SEND":
-      return { loading: true, error: null };
-    case "RESPONSE":
-      return { ...curHttpState, loading: false };
-    case "ERROR":
-      return { loading: false, error: action.errorMessage };
-    case "CLEAR":
-      return { ...curHttpState, error: null };
-    default:
-      throw new Error("should not be reached!");
-  }
-};
+// const httpReducer = (curHttpState, action) => {
+//   switch (action.type) {
+//     case "SEND":
+//       return { loading: true, error: null };
+//     case "RESPONSE":
+//       return { ...curHttpState, loading: false };
+//     case "ERROR":
+//       return { loading: false, error: action.errorMessage };
+//     case "CLEAR":
+//       return { ...curHttpState, error: null };
+//     default:
+//       throw new Error("should not be reached!");
+//   }
+// };
 
 function Ingredients() {
   //initialize useReducer() that takes useReducer() function ingredientReducer and an optional stater state
   const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
+ //you have to use useHttp() on root
+ //useHttp doesn't send the request actually it just sets up the logic for sending a request it sets up our state and it sets up this function which sends a request.
+const {isLoading, error, data, sendRequest} =useHttp();
+
+
   //the second argument is now not a method to set our user ingredients. Instead we're doing the setting in our reducer. Instead it's a dispatch function.
   //We choose to call dispatch function which will call to dispatch these actions later.
   // const [userIngredients, setUserIngredients] = useState([]);
@@ -52,10 +59,12 @@ function Ingredients() {
   // const [isLoading, setIsLoading] = useState(false);
   // const [error, setError] = useState();
 
-  const [httpState, dispatchHttp] = useReducer(httpReducer, {
-    loading: false,
-    error: null,
-  });
+
+  //since the reducer was removed into http.js
+  // const [httpState, dispatchHttp] = useReducer(httpReducer, {
+  //   loading: false,
+  //   error: null,
+  // });
 
   //!useEffect(()=>{}) you need to pass a function inside it.
   //For you to manage side effects
@@ -93,66 +102,75 @@ function Ingredients() {
   //the useCallback() allows you to wrap one of your functions with it.
   //you pass a second argument with the dependencies of your function.
   //It caches you function so it survives re-render cycles, so the specific function is not recreated on the next render
+  //! Use useMemo() for optimization useCallback()??
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
     // setUserIngredients(filteredIngredients);
     dispatch({ type: "SET", ingredients: filteredIngredients }); //to dispatch an action the action could be anything could be a string. But typically it's an object
   }, []);
   //With useReducer(), React will re-render  the component whenever your reducer returns the new state
-  const addIngredientHandler = (ingredient) => {
+  const addIngredientHandler = useCallback((ingredient) => {
     // setIsLoading(true);
-    dispatchHttp({ type: "SEND" });
-    fetch(
-      "https://react-hooks-update-gd-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json",
-      {
-        method: "POST",
-        body: JSON.stringify(ingredient), //axios does it automatically
-        headers: { "Content-Type": "application/json" }, //axios does it automatically
-      }
-    )
-      .then((response) => {
-        // setIsLoading(false);
-        dispatchHttp({ type: "RESPONSE" });//
-        return response.json();
-      })
-      .then((responseData) => {
-        // setUserIngredients((prevIngredients) => [
-        //   ...prevIngredients,
-        //   { id: responseData.name, ...ingredient }, //name is for firebase to give you a unique id
-        // ]);
-        dispatch({
-          type: "ADD",
-          ingredient: { id: responseData.name, ...ingredient },
-        });
-      });
-  };
-  const removeIngredientHandler = (ingredientId) => {
+    // dispatchHttp({ type: "SEND" });
+    // fetch(
+    //   "https://react-hooks-update-gd-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json",
+    //   {
+    //     method: "POST",
+    //     body: JSON.stringify(ingredient), //axios does it automatically
+    //     headers: { "Content-Type": "application/json" }, //axios does it automatically
+    //   }
+    // )
+    //   .then((response) => {
+    //     // setIsLoading(false);
+    //     dispatchHttp({ type: "RESPONSE" });//
+    //     return response.json();
+    //   })
+    //   .then((responseData) => {
+    //     // setUserIngredients((prevIngredients) => [
+    //     //   ...prevIngredients,
+    //     //   { id: responseData.name, ...ingredient }, //name is for firebase to give you a unique id
+    //     // ]);
+    //     dispatch({
+    //       type: "ADD",
+    //       ingredient: { id: responseData.name, ...ingredient },
+    //     });
+    //   });
+  },[]);//[] where you define your dependencies
+  //!useMemo() useCallback()??
+  const removeIngredientHandler = useCallback((ingredientId) => {
     // setIsLoading(true);
-    dispatchHttp({ type: "SEND" });
-    fetch(
-      `https://react-hooks-update-gd-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`,
-      {
-        method: "DELETE",
-      }
-    )
-      .then((response) => {
-        // setIsLoading(false);
-        dispatchHttp({ type: "RESPONSE" });
+    sendRequest(`https://react-hooks-update-gd-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`, 'DELETE' )
 
-        //once you get a response, update the UI
-        // setUserIngredients((prevIngredients) =>
-        //   prevIngredients.filter((ingredient) => ingredient.id !== ingredientId)
-        //); //If they are equal, it is false, so it is not included in the new array created by filter.
-        dispatch({ type: "DELETE", id: ingredientId });
-      })
-      .catch((error) => {
-        // setError("something went wrong! ", error.message);
-        // setIsLoading(false);// this is already included too
-        dispatchHttp({ type: "ERROR", errorMessage: "Something went wrong!" });
-      });
-  };
+    //!custom hooks - just as all of our hooks you have to use it on the root level.
+//So we can't use it in here in the remove ingredient handler.
+//That won't work.
+    // dispatchHttp({ type: "SEND" });
 
-  const clearError = () => {
-    dispatchHttp({type: 'CLEAR'});
+    //into http custom hooks
+    // fetch(
+    //   `https://react-hooks-update-gd-default-rtdb.europe-west1.firebasedatabase.app/ingredients/${ingredientId}.json`,
+    //   {
+    //     method: "DELETE",
+    //   }
+    // )
+    //   .then((response) => {
+    //     // setIsLoading(false);
+    //     dispatchHttp({ type: "RESPONSE" });
+
+    //     //once you get a response, update the UI
+    //     // setUserIngredients((prevIngredients) =>
+    //     //   prevIngredients.filter((ingredient) => ingredient.id !== ingredientId)
+    //     //); //If they are equal, it is false, so it is not included in the new array created by filter.
+    //     dispatch({ type: "DELETE", id: ingredientId });
+    //   })
+    //   .catch((error) => {
+    //     // setError("something went wrong! ", error.message);
+    //     // setIsLoading(false);// this is already included too
+    //     dispatchHttp({ type: "ERROR", errorMessage: "Something went wrong!" });
+    //   });
+  },[sendRequest]);
+
+  const clearError = useCallback(() => {
+    // dispatchHttp({type: 'CLEAR'});
     // setError(null);
     // setIsLoading(false);
     //react batches this two states together for the next render
@@ -164,27 +182,43 @@ function Ingredients() {
     // in the same synchronous (!) execution cycle (e.g. in the same function) will NOT trigger two component re-render cycles.
 
     // Instead, the component will only re-render once and both state updates will be applied simultaneously.
-  };
+  },[]);
+
+  //!useMemo() instead of useCallback
+  //This tells react when it should rerun this function to create a new object, that it should memorize and we know it should rerun this function whenever the user ingredients change.
+const ingredientList = useMemo(()=> {
+  return (
+    <IngredientList
+    ingredients={userIngredients}
+    onRemoveItem={removeIngredientHandler}
+  />
+  )
+},[userIngredients, removeIngredientHandler]);//[ list of dependencies that you have]
 
   return (
     <div className="App">
       {/* {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>} */}
-      {httpState.error && <ErrorModal onClose={clearError}>{httpState.error}</ErrorModal>}
+      {/* {httpState.error && <ErrorModal onClose={clearError}>{httpState.error}</ErrorModal>} */}
+      {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
 
       {/* //Loading */}
       <IngredientForm
         onAddIngredient={addIngredientHandler}
         // loading={isLoading}
-        loading={httpState.loading}
+        // loading={httpState.loading}
+        loading={isLoading}
+
       />
 
       <section>
         <Search onLoadIngredients={filteredIngredientsHandler} />
+        {ingredientList}
         {/* Need to add list here! */}
-        <IngredientList
+        {/* //!useMemo() */}
+        {/* <IngredientList
           ingredients={userIngredients}
           onRemoveItem={removeIngredientHandler}
-        />
+        /> */}
       </section>
     </div>
   );
